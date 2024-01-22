@@ -25,3 +25,4 @@ const (
 	// DefaultRolloutsConfigMapName is the default name of the ConfigMap that contains the Rollouts controller configuration
 	DefaultRolloutsConfigMapName = "argo-rollouts-config"
 )
+
