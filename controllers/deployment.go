@@ -323,6 +323,25 @@ func rolloutsContainer(cr rolloutsmanagerv1alpha1.RolloutManager) corev1.Contain
 
 }
 
+// removeUserLabelsAndAnnotations will remove any miscellaneous labels/annotations from obj, that are not used or expected by argo-rollouts-manager. For example, if a user added a label, "my-key": "my-value", to annotations of a Role that is created by our operator, this function woudl remove that label from 'obj'.
+func removeUserLabelsAndAnnotations(obj *metav1.ObjectMeta, cr rolloutsmanagerv1alpha1.RolloutManager) {
+
+	defaultLabelsAndAnnotations := metav1.ObjectMeta{}
+	setRolloutsLabelsAndAnnotationsToObject(&defaultLabelsAndAnnotations, cr)
+
+	for k := range defaultLabelsAndAnnotations.Labels {
+		if _, exists := obj.Labels[k]; !exists {
+			delete(obj.Labels, k)
+		}
+	}
+
+	for k := range defaultLabelsAndAnnotations.Annotations {
+		if _, exists := defaultLabelsAndAnnotations.Annotations[k]; !exists {
+			delete(obj.Annotations, k)
+		}
+	}
+}
+
 // One of the goals of an operator is to reconcile the live state of a resource on the cluster, with a target state for that resource. However, one of the challenges in doing so is that some fields of the resource will naturally differ from the values that are generated: for example, some field have default values which are only set after creation. This can make it challenging to compare the live/target status. Various strategies exist to handle.
 //
 // The strategy used in this file is implemented here in normalizeDeployment: normalizeDeployment will created a normalized representation of any input Deployment: the normal form will only contains fields which are relevant/useful to the operator. All other fields will be discarded.

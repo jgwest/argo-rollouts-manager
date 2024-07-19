@@ -52,36 +52,54 @@ func (r *RolloutManagerReconciler) reconcileRolloutsRole(ctx context.Context, cr
 
 	expectedPolicyRules := GetPolicyRules()
 
-	role := &rbacv1.Role{
+	expectedRole := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DefaultArgoRolloutsResourceName,
 			Namespace: cr.Namespace,
 		},
 	}
-	setRolloutsLabelsAndAnnotationsToObject(&role.ObjectMeta, cr)
+	setRolloutsLabelsAndAnnotationsToObject(&expectedRole.ObjectMeta, cr)
 
-	if err := fetchObject(ctx, r.Client, cr.Namespace, role.Name, role); err != nil {
+	liveRole := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: expectedRole.Name, Namespace: expectedRole.Namespace}}
+
+	if err := fetchObject(ctx, r.Client, cr.Namespace, liveRole.Name, liveRole); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to reconcile the Role for the ServiceAccount associated with %s: %w", role.Name, err)
+			return nil, fmt.Errorf("failed to reconcile the Role for the ServiceAccount associated with %s: %w", liveRole.Name, err)
 		}
 
-		if err = controllerutil.SetControllerReference(&cr, role, r.Scheme); err != nil {
+		if err = controllerutil.SetControllerReference(&cr, expectedRole, r.Scheme); err != nil {
 			return nil, err
 		}
 
-		log.Info(fmt.Sprintf("Creating Role %s", role.Name))
-		role.Rules = expectedPolicyRules
-		return role, r.Client.Create(ctx, role)
+		log.Info(fmt.Sprintf("Creating Role %s", expectedRole.Name))
+		expectedRole.Rules = expectedPolicyRules
+		return expectedRole, r.Client.Create(ctx, expectedRole)
 	}
 
-	// Reconcile if the Role already exists and modified.
-	if !reflect.DeepEqual(role.Rules, expectedPolicyRules) {
-		log.Info(fmt.Sprintf("PolicyRules of Role %s do not match the expected state, hence updating it", role.Name))
-		role.Rules = expectedPolicyRules
-		return role, r.Client.Update(ctx, role)
+	updateNeeded := false
+
+	if !reflect.DeepEqual(liveRole.Rules, expectedPolicyRules) {
+		updateNeeded = true
+
+		log.Info(fmt.Sprintf("PolicyRules of Role %s do not match the expected state, hence updating it", liveRole.Name))
+		liveRole.Rules = expectedPolicyRules
 	}
 
-	return role, nil
+	normalizedLiveRole := liveRole.DeepCopy()
+	removeUserLabelsAndAnnotations(&normalizedLiveRole.ObjectMeta, cr)
+	if reflect.DeepEqual(normalizedLiveRole.Labels, expectedRole.Labels) || reflect.DeepEqual(normalizedLiveRole.Annotations, expectedRole.Annotations) {
+		updateNeeded = true
+		log.Info(fmt.Sprintf("Labels/Annotations of Role %s do not match the expected state, hence updating it", liveRole.Name))
+		liveRole.Labels = combineStringMaps(liveRole.Labels, expectedRole.Labels)
+		liveRole.Annotations = combineStringMaps(liveRole.Annotations, expectedRole.Annotations)
+	}
+
+	if updateNeeded {
+		// Update if the Role already exists and needs to be modified
+		return liveRole, r.Client.Update(ctx, liveRole)
+	}
+
+	return liveRole, nil
 }
 
 // Reconciles Rollouts ClusterRole.
