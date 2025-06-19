@@ -42,8 +42,8 @@ spec:
         app: test-argo-app
     spec:
       containers:
-	  - image: quay.io/nginx/nginx-unprivileged@sha256:2700504269be5deda0085e218bd5cf624bdb2efd9a3025966c08c886e71ae4cf
-	    # From: https://quay.io/repository/nginx/nginx-unprivileged/manifest/sha256:2700504269be5deda0085e218bd5cf624bdb2efd9a3025966c08c886e71ae4cf
+      - image: "quay.io/nginx/nginx-unprivileged@sha256:2700504269be5deda0085e218bd5cf624bdb2efd9a3025966c08c886e71ae4cf"
+        # From: https://quay.io/repository/nginx/nginx-unprivileged/manifest/sha256:2700504269be5deda0085e218bd5cf624bdb2efd9a3025966c08c886e71ae4cf
         name: webserver-simple
         ports:
         - containerPort: 8080
