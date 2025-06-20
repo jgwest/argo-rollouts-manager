@@ -36,6 +36,9 @@ func main() {
 		"TestExperimentSuite/TestExperimentWithDryRunMetrics",
 		"TestFunctionalSuite/TestControllerMetrics",
 		"TestFunctionalSuite/TestBlueGreenPromoteFull",
+		"TestCanarySuite/TestCanaryDynamicStableScale",
+		"TestCanarySuite/TestCanaryScaleDownOnAbort",
+		"TestCanarySuite/TestCanaryScaleDownOnAbortNoTrafficRouting",
 	}
 
 	// DONE 6 runs, 144 tests, 6 skipped, 47 failures in 2279.668s
